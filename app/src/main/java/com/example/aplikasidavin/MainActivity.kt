@@ -234,12 +234,6 @@ fun NavGraph(
             )
         }
 
-        // Portfolio
-        composable("portfolio/{userId}") {
-            val userId = it.arguments?.getString("userId")?.toInt() ?: 0
-            PortfolioScreen(userId)
-        }
-
         // History
         composable("history/{userId}") {
             val userId = it.arguments?.getString("userId")?.toInt() ?: 0
