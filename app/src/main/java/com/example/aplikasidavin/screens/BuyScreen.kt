@@ -6,11 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,8 +39,23 @@ fun BuyScreen(
     onHideBottomNav: (Boolean) -> Unit
 ) {
 
-    LaunchedEffect(Unit) { onHideBottomNav(true) }
-    DisposableEffect(Unit) { onDispose { onHideBottomNav(false) } }
+    // ===============================
+    // BOTTOM NAV VISIBILITY
+    // ===============================
+
+    LaunchedEffect(Unit) {
+        onHideBottomNav(true)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            onHideBottomNav(false)
+        }
+    }
+
+    // ===============================
+    // STATE
+    // ===============================
 
     var amount by remember { mutableStateOf("") }
     val prices by vm.prices.collectAsState()
@@ -53,7 +64,10 @@ fun BuyScreen(
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // Ambil harga dari API
+    // ===============================
+    // FETCH PRICE
+    // ===============================
+
     LaunchedEffect(Unit) {
         vm.fetchPrices { msg ->
             coroutineScope.launch {
@@ -62,15 +76,23 @@ fun BuyScreen(
         }
     }
 
+    // ===============================
+    // CALCULATION
+    // ===============================
+
     val short = getShortSymbol(symbol)
     val priceUsd = prices[symbol.lowercase()]?.get("usd") ?: 0.0
+
     val coinAmount = amount.toDoubleOrNull() ?: 0.0
     val totalUsd = coinAmount * priceUsd
 
     val hargaUsdDisplay = "%,.2f".format(totalUsd)
     val coinDisplay = if (amount.isEmpty()) "0" else amount.trimEnd('.')
 
-    // Fokus otomatis pada input
+    // ===============================
+    // AUTO FOCUS INPUT
+    // ===============================
+
     LaunchedEffect(shouldFocus) {
         if (shouldFocus) {
             delay(100)
@@ -79,52 +101,68 @@ fun BuyScreen(
             shouldFocus = false
         }
     }
-    // === RATE LIMIT HANDLER ===
 
-
-
+    // ===============================
+    // UI
+    // ===============================
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            .padding(
+                horizontal = 24.dp,
+                vertical = 32.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
 
-        // Header
+        // ===============================
+        // HEADER
+        // ===============================
+
         Column(
-            horizontalAlignment = Alignment.Start,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.Start
         ) {
             Text(
-                "Beli ${short.uppercase()}",
+                text = "Beli ${short.uppercase()}",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(Modifier.height(4.dp))
+
+            Spacer(modifier = Modifier.height(4.dp))
+
             Text(
-                "Harga 1 ${short.uppercase()}: $ ${"%,.2f".format(priceUsd)}",
+                text = "Harga 1 ${short.uppercase()}: $ ${"%,.2f".format(priceUsd)}",
                 color = Color.Gray,
                 fontSize = 13.sp
             )
         }
 
-        // Display input (besar)
+        // ===============================
+        // DISPLAY INPUT (LARGE)
+        // ===============================
+
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 40.dp)
-                .noRippleClickable { shouldFocus = true }
+                .noRippleClickable {
+                    shouldFocus = true
+                },
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             Text(
                 text = "$coinDisplay ${short.uppercase()}",
                 fontSize = 42.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1C1C1E)
             )
-            Spacer(Modifier.height(6.dp))
+
+            Spacer(modifier = Modifier.height(6.dp))
+
             Text(
                 text = "≈ $ $hargaUsdDisplay",
                 color = Color.Gray,
@@ -132,43 +170,62 @@ fun BuyScreen(
             )
         }
 
-        // Hidden real input (decimal allowed)
+        // ===============================
+        // HIDDEN REAL INPUT
+        // ===============================
+
         BasicTextField(
             value = amount,
             onValueChange = { new ->
-                if (new.matches(Regex("^\\d*\\.?\\d*\$"))) {
+                if (new.matches(Regex("^\\d*\\.?\\d*$"))) {
                     amount = new
                 }
             },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal
+            ),
             modifier = Modifier
                 .focusRequester(focusRequester)
                 .width(1.dp)
                 .height(1.dp)
         )
 
-        // Tombol Beli
+        // ===============================
+        // BUY BUTTON
+        // ===============================
+
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
             Button(
                 onClick = {
 
-                    // Validasi input
+                    // ===============================
+                    // VALIDATION
+                    // ===============================
+
                     val inputAmount = amount.toDoubleOrNull()
                     if (inputAmount == null || inputAmount <= 0) {
                         coroutineScope.launch {
-                            snackbarHostState.showSnackbar("❌ Jumlah coin tidak valid")
+                            snackbarHostState.showSnackbar(
+                                "❌ Jumlah coin tidak valid"
+                            )
                         }
                         return@Button
                     }
 
                     if (priceUsd <= 0) {
                         coroutineScope.launch {
-                            snackbarHostState.showSnackbar("⚠️ Harga tidak tersedia")
+                            snackbarHostState.showSnackbar(
+                                "⚠️ Harga tidak tersedia"
+                            )
                         }
                         return@Button
                     }
 
-                    // 1️⃣ PROSES BELI DAHULU
+                    // ===============================
+                    // 1️⃣ BUY PROCESS
+                    // ===============================
+
                     vm.buyCrypto(
                         userId = userId,
                         investmentId = getInvestmentId(symbol),
@@ -183,16 +240,25 @@ fun BuyScreen(
                         // ❌ Jika gagal → stop
                         if (msg.contains("❌")) return@buyCrypto
 
-                        // 2️⃣ JIKA SUKSES → simpan blockchain
+                        // ===============================
+                        // 2️⃣ BLOCKCHAIN RECORD
+                        // ===============================
+
                         blockchainVM.recordActivity(
-                            userId, "BUY", symbol.uppercase(), inputAmount
+                            userId = userId,
+                            action = "BUY",
+                            stock = symbol.uppercase(),
+                            amount = inputAmount
                         ) { bcMsg ->
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar(bcMsg)
                             }
                         }
 
-                        // 3️⃣ Kembali ke sebelumnya
+                        // ===============================
+                        // 3️⃣ NAVIGATE BACK
+                        // ===============================
+
                         coroutineScope.launch {
                             delay(600)
                             navController.popBackStack()
@@ -206,7 +272,11 @@ fun BuyScreen(
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Beli Sekarang", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "Beli Sekarang",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
@@ -216,25 +286,31 @@ fun BuyScreen(
    HELPER FUNCTIONS
    ====================================== */
 
-fun getShortSymbol(symbol: String): String = when (symbol.lowercase()) {
-    "bitcoin" -> "BTC"
-    "ethereum" -> "ETH"
-    "solana" -> "SOL"
-    else -> symbol.uppercase()
-}
+fun getShortSymbol(symbol: String): String =
+    when (symbol.lowercase()) {
+        "bitcoin" -> "BTC"
+        "ethereum" -> "ETH"
+        "solana" -> "SOL"
+        else -> symbol.uppercase()
+    }
 
 @Composable
-fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier {
+fun Modifier.noRippleClickable(
+    onClick: () -> Unit
+): Modifier {
     val interactionSource = remember { MutableInteractionSource() }
     return this.clickable(
         indication = null,
         interactionSource = interactionSource
-    ) { onClick() }
+    ) {
+        onClick()
+    }
 }
 
-fun getInvestmentId(symbol: String): Int = when (symbol.lowercase()) {
-    "btc", "bitcoin" -> 1
-    "eth", "ethereum" -> 2
-    "sol", "solana" -> 3
-    else -> 1
-}
+fun getInvestmentId(symbol: String): Int =
+    when (symbol.lowercase()) {
+        "btc", "bitcoin" -> 1
+        "eth", "ethereum" -> 2
+        "sol", "solana" -> 3
+        else -> 1
+    }

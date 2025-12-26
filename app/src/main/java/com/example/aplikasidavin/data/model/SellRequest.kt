@@ -6,3 +6,4 @@ data class SellRequest(
     val amount: Double,
     val price: Double
 )
+

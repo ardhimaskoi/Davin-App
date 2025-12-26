@@ -1,23 +1,48 @@
 package com.example.aplikasidavin.data.api
 
 import com.example.aplikasidavin.data.model.*
-import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
 interface ApiService {
 
+    // ===============================
+    // AUTH
+    // ===============================
+
     @POST("auth/register")
-    suspend fun register(@Body body: Map<String, String>): AuthResponse
+    suspend fun register(
+        @Body body: Map<String, String>
+    ): AuthResponse
 
     @POST("auth/login")
-    suspend fun login(@Body body: Map<String, String>): AuthResponse
+    suspend fun login(
+        @Body body: Map<String, String>
+    ): AuthResponse
+
+
+    // ===============================
+    // USERS
+    // ===============================
 
     @GET("users")
     suspend fun getUsers(): List<User>
 
     @PUT("users/{id}/topup")
-    suspend fun topUp(@Path("id") id: Int, @Body body: Map<String, Double>): Map<String, Any>
+    suspend fun topUp(
+        @Path("id") id: Int,
+        @Body body: Map<String, Double>
+    ): Map<String, Any>
+
+    @DELETE("users/{id}")
+    suspend fun deleteUser(
+        @Path("id") id: Int
+    ): Map<String, String>
+
+
+    // ===============================
+    // INVESTMENTS & PRICES
+    // ===============================
 
     @GET("investments")
     suspend fun getInvestments(): List<Investment>
@@ -25,34 +50,30 @@ interface ApiService {
     @GET("prices")
     suspend fun getCryptoPrices(): Map<String, Map<String, Double>>
 
+    @GET("prices/{symbol}/chart")
+    suspend fun getChartData(
+        @Path("symbol") symbol: String
+    ): List<List<Double>>
+
+
+    // ===============================
+    // TRANSACTIONS
+    // ===============================
+
     @POST("transactions/buy")
-    suspend fun buyCrypto(@Body body: BuyRequest): Map<String, Any>
+    suspend fun buyCrypto(
+        @Body body: BuyRequest
+    ): Map<String, Any>
 
     @POST("transactions/sell")
-    suspend fun sellCrypto(@Body body: SellRequest): Map<String, Any>
+    suspend fun sellCrypto(
+        @Body body: SellRequest
+    ): Map<String, Any>
 
     @GET("transactions/{user_id}")
-    suspend fun getTransactions(@Path("user_id") userId: Int): List<Transaction>
-
-    @POST("blockchain/record")
-    suspend fun recordBlockchain(@Body body: BlockchainRequest): Response<BlockchainResponse>
-
-
-    @GET("blockchain/records")
-    suspend fun getBlockchainRecords(): Response<List<BlockchainRecord>>
-
-    @GET("blockchain/verify/{id}")
-    suspend fun verifyRecord(@Path("id") id: Int): Response<VerifyResponse>
-
-
-    @GET("/portfolio/{user_id}")
-    suspend fun getPortfolio(@Path("user_id") userId: Int): List<Portfolio>
-
-    @GET("prices/{symbol}/chart")
-    suspend fun getChartData(@Path("symbol") symbol: String): List<List<Double>>
-
-    @POST("payment/create")
-    suspend fun createPayment(@Body body: PaymentRequest): PaymentResponse
+    suspend fun getTransactions(
+        @Path("user_id") userId: Int
+    ): List<Transaction>
 
     @PUT("transactions/{id}/status")
     suspend fun updateTransactionStatus(
@@ -61,7 +82,19 @@ interface ApiService {
     ): Map<String, Any>
 
     @DELETE("transactions/{id}")
-    suspend fun deleteTransaction(@Path("id") id: Int): Map<String, Any>
+    suspend fun deleteTransaction(
+        @Path("id") id: Int
+    ): Map<String, Any>
+
+
+    // ===============================
+    // PORTFOLIO
+    // ===============================
+
+    @GET("portfolio/{user_id}")
+    suspend fun getPortfolio(
+        @Path("user_id") userId: Int
+    ): List<Portfolio>
 
     @DELETE("portfolio/{userId}/{investmentId}")
     suspend fun deletePortfolio(
@@ -70,8 +103,30 @@ interface ApiService {
     ): Map<String, String>
 
 
-    @DELETE("users/{id}")
-    suspend fun deleteUser(@Path("id") id: Int): Map<String, String>
+    // ===============================
+    // BLOCKCHAIN
+    // ===============================
+
+    @POST("blockchain/record")
+    suspend fun recordBlockchain(
+        @Body body: BlockchainRequest
+    ): Response<BlockchainResponse>
+
+    @GET("blockchain/records")
+    suspend fun getBlockchainRecords(): Response<List<BlockchainRecord>>
+
+    @GET("blockchain/verify/{id}")
+    suspend fun verifyRecord(
+        @Path("id") id: Int
+    ): Response<VerifyResponse>
 
 
+    // ===============================
+    // PAYMENT
+    // ===============================
+
+    @POST("payment/create")
+    suspend fun createPayment(
+        @Body body: PaymentRequest
+    ): PaymentResponse
 }

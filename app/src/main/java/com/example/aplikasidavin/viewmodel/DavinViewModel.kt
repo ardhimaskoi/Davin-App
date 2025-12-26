@@ -1,23 +1,24 @@
 package com.example.aplikasidavin.viewmodel
 
 import android.util.Log
-import retrofit2.HttpException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.aplikasidavin.data.api.RetrofitInstance
 import com.example.aplikasidavin.data.model.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import org.json.JSONObject
+import retrofit2.HttpException
 import java.lang.Exception
 
 class DavinViewModel : ViewModel() {
 
-    // ================================
+    // =================================================
     // 🛡 RATE LIMIT PROTECTION
-    // ================================
+    // =================================================
+
     private val _rateLimited = MutableStateFlow(false)
     val rateLimited: StateFlow<Boolean> = _rateLimited
 
@@ -39,37 +40,44 @@ class DavinViewModel : ViewModel() {
         }
     }
 
-    private fun safeDouble(any: Any?): Double {
-        return try {
+    private fun safeDouble(any: Any?): Double =
+        try {
             any.toString().toDouble()
         } catch (_: Exception) {
             Double.NaN
         }
-    }
 
-    // =================================
+    // =================================================
     // STATE
-    // =================================
-    private val _prices = MutableStateFlow<Map<String, Map<String, Double>>>(emptyMap())
+    // =================================================
+
+    private val _prices =
+        MutableStateFlow<Map<String, Map<String, Double>>>(emptyMap())
     val prices: StateFlow<Map<String, Map<String, Double>>> = _prices
 
-    private val _transactions = MutableStateFlow<List<Transaction>>(emptyList())
+    private val _transactions =
+        MutableStateFlow<List<Transaction>>(emptyList())
     val transactions: StateFlow<List<Transaction>> = _transactions
 
-    private val _currentUser = MutableStateFlow<User?>(null)
+    private val _currentUser =
+        MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser
 
-    private val _portfolio = MutableStateFlow<List<Portfolio>>(emptyList())
+    private val _portfolio =
+        MutableStateFlow<List<Portfolio>>(emptyList())
     val portfolio: StateFlow<List<Portfolio>> = _portfolio
 
-    private val _chartData = MutableStateFlow<List<Pair<Double, Double>>>(emptyList())
+    private val _chartData =
+        MutableStateFlow<List<Pair<Double, Double>>>(emptyList())
     val chartData: StateFlow<List<Pair<Double, Double>>> = _chartData
 
+    // =================================================
+    // 🔹 FETCH PRICES + RATE LIMIT HANDLING
+    // =================================================
 
-    // =================================
-    // 🔹 Fetch Prices + Rate Limit Handling
-    // =================================
-    fun fetchPrices(onError: (String) -> Unit = {}) {
+    fun fetchPrices(
+        onError: (String) -> Unit = {}
+    ) {
         if (_rateLimited.value) {
             onError("⚠️ Tunggu ${_cooldown.value} detik sebelum refresh harga.")
             return
@@ -83,7 +91,7 @@ class DavinViewModel : ViewModel() {
                 if (status != null && status["error_code"] == 429) {
 
                     _prices.value = emptyMap()
-                    _prices.value = _prices.value.toMap()   // 🔥 force recomposition
+                    _prices.value = _prices.value.toMap() // 🔥 force recomposition
 
                     startCooldown()
                     onError("⚠️ Rate Limit CoinGecko — coba lagi dalam 1 menit.")
@@ -96,45 +104,66 @@ class DavinViewModel : ViewModel() {
                 if (btc.isNaN()) {
 
                     _prices.value = emptyMap()
-                    _prices.value = _prices.value.toMap()   // 🔥 force recomposition
+                    _prices.value = _prices.value.toMap() // 🔥 force recomposition
 
                     startCooldown()
                     onError("⚠️ CoinGecko Rate Limit — menunggu 1 menit.")
                     return@launch
                 }
 
-            } catch (e: Exception) {
+            } catch (_: Exception) {
 
                 _prices.value = emptyMap()
-                _prices.value = _prices.value.toMap()       // 🔥 force recomposition
+                _prices.value = _prices.value.toMap()
 
                 onError("⚠️ Tidak bisa ambil harga crypto.")
             }
         }
     }
 
+    // =================================================
+    // 🔹 TRANSACTIONS
+    // =================================================
 
-    // =================================
-    // 🔹 Ambil transaksi
-    // =================================
-    fun fetchTransactions(userId: Int) {
+    fun fetchTransactions(
+        userId: Int
+    ) {
         viewModelScope.launch {
-            _transactions.value = RetrofitInstance.api.getTransactions(userId)
+            _transactions.value =
+                RetrofitInstance.api.getTransactions(userId)
         }
     }
 
-    // =================================
+    // =================================================
     // 🔹 BUY
-    // =================================
-    fun buyCrypto(userId: Int, investmentId: Int, amount: Double, price: Double, onResult: (String) -> Unit) {
+    // =================================================
+
+    fun buyCrypto(
+        userId: Int,
+        investmentId: Int,
+        amount: Double,
+        price: Double,
+        onResult: (String) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val body = BuyRequest(user_id = userId, investment_id = investmentId, amount = amount, price = price)
-                val res = RetrofitInstance.api.buyCrypto(body)
+                val body = BuyRequest(
+                    user_id = userId,
+                    investment_id = investmentId,
+                    amount = amount,
+                    price = price
+                )
+
+                val res =
+                    RetrofitInstance.api.buyCrypto(body)
+
                 onResult(res["message"].toString())
 
             } catch (e: HttpException) {
-                val msg = parseError(e.response()?.errorBody()?.string())
+
+                val msg =
+                    parseError(e.response()?.errorBody()?.string())
+
                 onResult("❌ $msg")
 
             } catch (e: Exception) {
@@ -143,18 +172,36 @@ class DavinViewModel : ViewModel() {
         }
     }
 
-    // =================================
+    // =================================================
     // 🔹 SELL
-    // =================================
-    fun sellCrypto(userId: Int, investmentId: Int, amount: Double, price: Double, onResult: (String) -> Unit) {
+    // =================================================
+
+    fun sellCrypto(
+        userId: Int,
+        investmentId: Int,
+        amount: Double,
+        price: Double,
+        onResult: (String) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val body = SellRequest(user_id = userId, investment_id = investmentId, amount = amount, price = price)
-                val res = RetrofitInstance.api.sellCrypto(body)
+                val body = SellRequest(
+                    user_id = userId,
+                    investment_id = investmentId,
+                    amount = amount,
+                    price = price
+                )
+
+                val res =
+                    RetrofitInstance.api.sellCrypto(body)
+
                 onResult(res["message"].toString())
 
             } catch (e: HttpException) {
-                val msg = parseError(e.response()?.errorBody()?.string())
+
+                val msg =
+                    parseError(e.response()?.errorBody()?.string())
+
                 onResult("❌ $msg")
 
             } catch (e: Exception) {
@@ -163,79 +210,119 @@ class DavinViewModel : ViewModel() {
         }
     }
 
-    private fun parseError(errorBody: String?): String {
-        return try {
-            if (errorBody == null) return "Terjadi kesalahan"
-            val json = JSONObject(errorBody)
-            json.optString("message", "Terjadi kesalahan")
+    private fun parseError(
+        errorBody: String?
+    ): String =
+        try {
+            if (errorBody == null) "Terjadi kesalahan"
+            else JSONObject(errorBody)
+                .optString("message", "Terjadi kesalahan")
         } catch (_: Exception) {
             "Terjadi kesalahan"
         }
-    }
 
-    // =================================
+    // =================================================
     // 🔹 TOP UP
-    // =================================
-    fun topUp(userId: Int, amount: Double, onResult: (String) -> Unit) {
+    // =================================================
+
+    fun topUp(
+        userId: Int,
+        amount: Double,
+        onResult: (String) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val res = RetrofitInstance.api.topUp(userId, mapOf("balance" to amount))
+                val res =
+                    RetrofitInstance.api.topUp(
+                        userId,
+                        mapOf("balance" to amount)
+                    )
+
                 onResult(res["message"].toString())
+
             } catch (e: Exception) {
                 onResult("❌ Gagal: ${e.localizedMessage}")
             }
         }
     }
 
-    // =================================
-    // 🔹 Portfolio
-    // =================================
-    fun fetchPortfolio(userId: Int) {
+    // =================================================
+    // 🔹 PORTFOLIO
+    // =================================================
+
+    fun fetchPortfolio(
+        userId: Int
+    ) {
         viewModelScope.launch {
             try {
-                _portfolio.value = RetrofitInstance.api.getPortfolio(userId)
+                _portfolio.value =
+                    RetrofitInstance.api.getPortfolio(userId)
             } catch (_: Exception) { }
         }
     }
 
-    // =================================
-    // 🔹 User Profile
-    // =================================
-    fun fetchUserProfile(userId: Int) {
+    // =================================================
+    // 🔹 USER PROFILE
+    // =================================================
+
+    fun fetchUserProfile(
+        userId: Int
+    ) {
         viewModelScope.launch {
             try {
-                val user = RetrofitInstance.api.getUsers().firstOrNull { it.id == userId }
-                _currentUser.value = user
+                _currentUser.value =
+                    RetrofitInstance.api.getUsers()
+                        .firstOrNull { it.id == userId }
             } catch (_: Exception) {
                 _currentUser.value = null
             }
         }
     }
 
-    // =================================
-    // 🔹 Chart
-    // =================================
-    fun fetchChart(symbol: String) {
+    // =================================================
+    // 🔹 CHART
+    // =================================================
+
+    fun fetchChart(
+        symbol: String
+    ) {
         viewModelScope.launch {
             _chartData.value = emptyList()
             try {
-                val res = RetrofitInstance.api.getChartData(symbol)
-                _chartData.value = res.map { Pair(it[0], it[1]) }
-            } catch (e: Exception) {
+                val res =
+                    RetrofitInstance.api.getChartData(symbol)
+
+                _chartData.value =
+                    res.map { Pair(it[0], it[1]) }
+
+            } catch (_: Exception) {
                 _chartData.value = emptyList()
             }
         }
     }
 
-    // =================================
-    // 🔹 Create Payment
-    // =================================
-    fun createPayment(userId: Int, amount: Double, onResult: (PaymentResponse?) -> Unit) {
+    // =================================================
+    // 🔹 PAYMENT
+    // =================================================
+
+    fun createPayment(
+        userId: Int,
+        amount: Double,
+        onResult: (PaymentResponse?) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val request = PaymentRequest(user_id = userId, amount = amount)
-                val res = RetrofitInstance.api.createPayment(request)
+                val request =
+                    PaymentRequest(
+                        user_id = userId,
+                        amount = amount
+                    )
+
+                val res =
+                    RetrofitInstance.api.createPayment(request)
+
                 onResult(res)
+
             } catch (e: Exception) {
                 Log.e("PAYMENT", "ERROR: ${e.message}")
                 onResult(null)
@@ -243,71 +330,105 @@ class DavinViewModel : ViewModel() {
         }
     }
 
+    // =================================================
+    // 🔹 UPDATE / DELETE TRANSACTION
+    // =================================================
 
-    // =================================
-    // 🔹 Edit
-    // =================================
-    fun updateTransactionStatus(id: Int, status: String, onResult: (String) -> Unit) {
+    fun updateTransactionStatus(
+        id: Int,
+        status: String,
+        onResult: (String) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val body = mapOf("status" to status)
-                val res = RetrofitInstance.api.updateTransactionStatus(id, body)
+                val res =
+                    RetrofitInstance.api.updateTransactionStatus(
+                        id,
+                        mapOf("status" to status)
+                    )
+
                 onResult(res["message"].toString())
+
             } catch (e: Exception) {
                 onResult("❌ Gagal: ${e.localizedMessage}")
             }
         }
     }
 
-    // =================================
-    // 🔹 Delete trankasasi
-    // =================================
-    fun deleteTransaction(id: Int, onResult: (String) -> Unit) {
+    fun deleteTransaction(
+        id: Int,
+        onResult: (String) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val res = RetrofitInstance.api.deleteTransaction(id)
+                val res =
+                    RetrofitInstance.api.deleteTransaction(id)
+
                 onResult(res["message"].toString())
+
             } catch (e: Exception) {
                 onResult("❌ Gagal: ${e.localizedMessage}")
             }
         }
     }
 
-    // =================================
-    // 🔹 Delete portofolio
-    // =================================
+    // =================================================
+    // 🔹 DELETE PORTFOLIO
+    // =================================================
 
-    fun deletePortfolio(userId: Int, investmentId: Int, onResult: (String) -> Unit) {
+    fun deletePortfolio(
+        userId: Int,
+        investmentId: Int,
+        onResult: (String) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val res = RetrofitInstance.api.deletePortfolio(userId, investmentId)
+                val res =
+                    RetrofitInstance.api.deletePortfolio(
+                        userId,
+                        investmentId
+                    )
+
                 fetchPortfolio(userId)
-                onResult(res["message"].toString())   // sukses
-            } catch (e: retrofit2.HttpException) {
-                val msg = try {
-                    val json = JSONObject(e.response()?.errorBody()?.string() ?: "")
-                    json.optString("message", "Gagal menghapus")
-                } catch (_: Exception) {
-                    "Gagal menghapus"
-                }
-                onResult("❌ $msg")                    // error khusus amount > 0
+                onResult(res["message"].toString())
+
+            } catch (e: HttpException) {
+
+                val msg =
+                    try {
+                        JSONObject(
+                            e.response()?.errorBody()?.string() ?: ""
+                        ).optString("message", "Gagal menghapus")
+                    } catch (_: Exception) {
+                        "Gagal menghapus"
+                    }
+
+                onResult("❌ $msg")
+
             } catch (e: Exception) {
                 onResult("❌ ${e.localizedMessage}")
             }
         }
     }
 
-    fun deleteUser(userId: Int, onResult: (String) -> Unit) {
+    // =================================================
+    // 🔹 DELETE USER
+    // =================================================
+
+    fun deleteUser(
+        userId: Int,
+        onResult: (String) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val res = RetrofitInstance.api.deleteUser(userId)
+                val res =
+                    RetrofitInstance.api.deleteUser(userId)
+
                 onResult(res["message"] ?: "Akun berhasil dihapus")
+
             } catch (e: Exception) {
                 onResult("❌ Gagal hapus akun: ${e.localizedMessage}")
             }
         }
     }
-
-
-
 }

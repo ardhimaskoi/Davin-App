@@ -1,16 +1,34 @@
+// ===============================
+// blockchain.routes.js
+// ===============================
+
 const Web3 = require("web3");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-const abi = JSON.parse(fs.readFileSync(path.join(__dirname, "../build/abi.json")));
+// ===============================
+// LOAD ABI & CONTRACT INFO
+// ===============================
+
+const abi = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "../build/abi.json"))
+);
+
 const { contractAddress } = require("../deploy-info.json");
 
-// Connect ke Ganache CLI
+// ===============================
+// WEB3 SETUP (GANACHE)
+// ===============================
+
 const web3 = new Web3("http://127.0.0.1:8545");
 
 // Instance contract
 const contract = new web3.eth.Contract(abi, contractAddress);
+
+// ===============================
+// REGISTER ROUTES
+// ===============================
 
 async function registerBlockchainRoutes(app, db) {
   console.log("🔗 Blockchain route aktif");
@@ -21,108 +39,143 @@ async function registerBlockchainRoutes(app, db) {
 
   console.log("🔑 Default Account:", defaultAccount);
 
-  // ==================================================================
-  // POST /blockchain/record  → Simpan data + hash ke blockchain & DB
-  // ==================================================================
+  // ============================================================
+  // POST /blockchain/record
+  // Simpan data + hash ke blockchain & database
+  // ============================================================
+
   app.post("/blockchain/record", async (req, res) => {
     try {
       const { user_id, action, stock, amount } = req.body;
 
-      // Normalisasi angka supaya konsisten
+      // Normalisasi angka agar konsisten
       const amountNorm = Number(amount).toString();
 
       // Format data konsisten
       const dataString = `${user_id}|${action}|${stock}|${amountNorm}`;
 
-      // Generate hash
-      const hash = "0x" + crypto
-        .createHash("sha256")
-        .update(dataString)
-        .digest("hex");
+      // Generate hash SHA-256
+      const hash =
+        "0x" +
+        crypto
+          .createHash("sha256")
+          .update(dataString)
+          .digest("hex");
 
-      // Simpan ke blockchain
-      const tx = await contract.methods.storeProof(hash)
-        .send({ from: defaultAccount, gas: 200000 });
+      // Simpan hash ke blockchain
+      const tx = await contract.methods
+        .storeProof(hash)
+        .send({
+          from: defaultAccount,
+          gas: 200000,
+        });
 
-      // Simpan ke MySQL
+      // Simpan ke database
       await db.query(
-        "INSERT INTO activity_log (user_id, action, stock, amount, dataHash, txHash) VALUES (?, ?, ?, ?, ?, ?)",
-        [user_id, action, stock, amountNorm, hash, tx.transactionHash]
+        `INSERT INTO activity_log
+         (user_id, action, stock, amount, dataHash, txHash)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          user_id,
+          action,
+          stock,
+          amountNorm,
+          hash,
+          tx.transactionHash,
+        ]
       );
 
       res.json({
         message: "✅ Proof tersimpan di blockchain",
         txHash: tx.transactionHash,
-        hash
+        hash,
       });
-
     } catch (err) {
       console.error("❌ Gagal mencatat:", err);
-      res.status(500).json({ message: "❌ Gagal mencatat proof blockchain", error: err.message });
+      res.status(500).json({
+        message: "❌ Gagal mencatat proof blockchain",
+        error: err.message,
+      });
     }
   });
 
-  // ==================================================================
-  // GET /blockchain/records  → Ambil semua record
-  // ==================================================================
+  // ============================================================
+  // GET /blockchain/records
+  // Ambil semua activity log
+  // ============================================================
+
   app.get("/blockchain/records", async (_req, res) => {
-    const [rows] = await db.query("SELECT * FROM activity_log ORDER BY id DESC");
+    const [rows] = await db.query(
+      "SELECT * FROM activity_log ORDER BY id DESC"
+    );
     res.json(rows);
   });
 
-  // ==================================================================
-  // GET /blockchain/verify/:id → Verifikasi apakah data berubah
-  // ==================================================================
+  // ============================================================
+  // GET /blockchain/verify/:id
+  // Verifikasi integritas data (anti-manipulasi)
+  // ============================================================
+
   app.get("/blockchain/verify/:id", async (req, res) => {
     try {
       const { id } = req.params;
 
-      // Ambil record lokal
+      // Ambil record dari database
       const [[record]] = await db.query(
         "SELECT * FROM activity_log WHERE id=?",
         [id]
       );
 
       if (!record) {
-        return res.status(404).json({ valid: false, message: "Record tidak ditemukan" });
+        return res.status(404).json({
+          valid: false,
+          message: "Record tidak ditemukan",
+        });
       }
 
-      // Normalisasi amount dari database
+      // Normalisasi amount
       const amountNorm = Number(record.amount).toString();
 
-      // Hash ulang
+      // Hitung ulang hash lokal
       const dataString = `${record.user_id}|${record.action}|${record.stock}|${amountNorm}`;
 
-      const localHash = "0x" + crypto
-        .createHash("sha256")
-        .update(dataString)
-        .digest("hex");
+      const localHash =
+        "0x" +
+        crypto
+          .createHash("sha256")
+          .update(dataString)
+          .digest("hex");
 
-      // Ambil event blockchain
+      // Ambil event dari blockchain
       const events = await contract.getPastEvents("ProofStored", {
         fromBlock: 0,
-        toBlock: "latest"
+        toBlock: "latest",
       });
 
-      // Cek apakah hash pernah dicatat di blockchain
-      const exists = events.some(ev => ev.returnValues.dataHash === record.dataHash);
+      // Cek apakah hash ada di blockchain
+      const exists = events.some(
+        (ev) => ev.returnValues.dataHash === record.dataHash
+      );
 
-      // Data valid jika:
-      // 1. Hash lokal sama dengan hash yang tersimpan
-      // 2. Hash tersebut benar-benar ada di blockchain
-      const valid = (localHash === record.dataHash) && exists;
+      // Validasi akhir
+      const valid = localHash === record.dataHash && exists;
 
       res.json({
         valid,
         localHash,
         blockchainHashExists: exists,
-        message: valid ? "Data VALID, tidak dimanipulasi" : "❌ Data SUDAH DIMANIPULASI!"
+        message: valid
+          ? "Data VALID, tidak dimanipulasi"
+          : "❌ Data SUDAH DIMANIPULASI!",
       });
-
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 }
+
+// ===============================
+// EXPORT
+// ===============================
 
 module.exports = registerBlockchainRoutes;

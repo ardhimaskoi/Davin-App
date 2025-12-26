@@ -3,11 +3,12 @@ package com.example.aplikasidavin
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,11 +24,17 @@ import com.example.aplikasidavin.screens.auth.LoginScreen
 import com.example.aplikasidavin.screens.auth.RegisterScreen
 import com.example.aplikasidavin.ui.theme.AplikasiDavinTheme
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
-// ======================================================================
-//  MAIN ACTIVITY
-// ======================================================================
+// =====================================================
+// COLOR (AKSEN DAVIN – TIDAK UNGU)
+// =====================================================
+
+private val DavinBlue = Color(0xFF1B2C67)
+private val DavinGray = Color(0xFF9E9E9E)
+
+// =====================================================
+// MAIN ACTIVITY
+// =====================================================
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,14 +52,14 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// ======================================================================
-//  ROOT APP (GLOBAL SNACKBAR + NAVGRAPH + BOTTOM NAV)
-// ======================================================================
+// =====================================================
+// ROOT APP
+// =====================================================
 
 @Composable
-
-fun DavinApp(navController: NavHostController) {
-
+fun DavinApp(
+    navController: NavHostController
+) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     var showBottomBar by remember { mutableStateOf(true) }
 
@@ -60,18 +67,18 @@ fun DavinApp(navController: NavHostController) {
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(backStackEntry) {
-        val route = backStackEntry?.destination?.route ?: ""
-        val hide = listOf("login", "register", "splash", "crypto_detail", "buy", "sell")
-        showBottomBar = hide.none { route.contains(it) }
+        val route = backStackEntry?.destination?.route.orEmpty()
+        val hideOn = listOf("login", "register", "splash", "crypto_detail", "buy", "sell")
+        showBottomBar = hideOn.none { route.contains(it) }
     }
 
-    // 🔥 LAYER PALING ATAS (Overlay)
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // 🔥 NAVIGATION DAN UI
         Scaffold(
             bottomBar = {
-                if (showBottomBar) BottomNavigationBar(navController)
+                if (showBottomBar) {
+                    BottomNavigationBar(navController)
+                }
             }
         ) { innerPadding ->
             NavGraph(
@@ -83,16 +90,15 @@ fun DavinApp(navController: NavHostController) {
             )
         }
 
-        // 🔥 SNACKBAR DI ATAS SEMUA SCREEN (OVERLAY)
         SnackbarHost(
             hostState = snackbarHostState,
             snackbar = { data ->
                 Snackbar(
                     snackbarData = data,
-                    containerColor = Color.White,        // 🔥 Background putih
-                    contentColor = Color(0xFF4A148C),    // 🔥 Teks ungu elegan (bisa diubah)
-                    actionContentColor = Color(0xFF4A148C),
-                    shape = RoundedCornerShape(12.dp),   // Rounded biar modern
+                    containerColor = Color.White,
+                    contentColor = DavinBlue,
+                    actionContentColor = DavinBlue,
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.padding(16.dp)
                 )
             }
@@ -100,15 +106,14 @@ fun DavinApp(navController: NavHostController) {
     }
 }
 
-
-
-// ======================================================================
-//  BOTTOM NAVIGATION
-// ======================================================================
+// =====================================================
+// BOTTOM NAVIGATION (TANPA UNGU)
+// =====================================================
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
-
+fun BottomNavigationBar(
+    navController: NavController
+) {
     val items = listOf(
         BottomNavItem("home", Icons.Default.Home, "Beranda"),
         BottomNavItem("history", Icons.Default.List, "Riwayat"),
@@ -116,42 +121,66 @@ fun BottomNavigationBar(navController: NavController) {
         BottomNavItem("profile", Icons.Default.Person, "Profil")
     )
 
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val currentRoute =
+        navController.currentBackStackEntryAsState().value?.destination?.route
 
     NavigationBar(
         containerColor = Color.White,
-        tonalElevation = 4.dp
+        tonalElevation = 6.dp
     ) {
         items.forEach { item ->
             val selected = currentRoute?.startsWith(item.route) == true
+
+            val interactionSource = remember { MutableInteractionSource() }
 
             NavigationBarItem(
                 selected = selected,
                 onClick = {
                     val args = navController.currentBackStackEntry?.arguments
                     val userId = args?.getString("userId") ?: "1"
+
                     navController.navigate("${item.route}/$userId") {
                         popUpTo("home/$userId") { inclusive = false }
+                        launchSingleTop = true
                     }
                 },
                 icon = {
                     Icon(
-                        item.icon,
+                        imageVector = item.icon,
                         contentDescription = item.label,
-                        tint = if (selected) Color(0xFF5E35B1) else Color.Gray
+                        tint = if (selected)
+                            Color(0xFF1B2C67)
+                        else
+                            Color(0xFF9E9E9E)
                     )
                 },
                 label = {
                     Text(
-                        item.label,
-                        color = if (selected) Color(0xFF5E35B1) else Color.Gray,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                        text = item.label,
+                        color = if (selected)
+                            Color(0xFF1B2C67)
+                        else
+                            Color(0xFF9E9E9E),
+                        fontWeight = if (selected)
+                            FontWeight.SemiBold
+                        else
+                            FontWeight.Normal
                     )
-                }
+                },
+                interactionSource = interactionSource,
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = Color.Transparent,
+                    selectedIconColor = Color(0xFF1B2C67),
+                    unselectedIconColor = Color(0xFF9E9E9E),
+                    selectedTextColor = Color(0xFF1B2C67),
+                    unselectedTextColor = Color(0xFF9E9E9E)
+                )
             )
         }
     }
 }
+
+
 
 data class BottomNavItem(
     val route: String,
@@ -159,9 +188,9 @@ data class BottomNavItem(
     val label: String
 )
 
-// ======================================================================
-//  NAVIGATION GRAPH
-// ======================================================================
+// =====================================================
+// NAVIGATION GRAPH (TIDAK DIUBAH)
+// =====================================================
 
 @Composable
 fun NavGraph(
@@ -177,20 +206,23 @@ fun NavGraph(
         modifier = modifier
     ) {
 
-        // Splash
-        composable("splash") { SplashScreen(navController) }
+        composable("splash") {
+            SplashScreen(navController)
+        }
 
-        // Auth screens
-        composable("login") { LoginScreen(navController, snackbarHostState, coroutineScope) }
-        composable("register") { RegisterScreen(navController, snackbarHostState, coroutineScope) }
+        composable("login") {
+            LoginScreen(navController, snackbarHostState, coroutineScope)
+        }
 
-        // Home
+        composable("register") {
+            RegisterScreen(navController, snackbarHostState, coroutineScope)
+        }
+
         composable("home/{userId}") {
             val userId = it.arguments?.getString("userId")?.toInt() ?: 0
             HomeScreen(userId, navController)
         }
 
-        // Detail Crypto
         composable("crypto_detail/{userId}/{symbol}") {
             val userId = it.arguments?.getString("userId")?.toInt() ?: 0
             val symbol = it.arguments?.getString("symbol") ?: "BTC"
@@ -204,7 +236,6 @@ fun NavGraph(
             )
         }
 
-        // BUY
         composable("buy/{userId}/{symbol}") {
             val userId = it.arguments?.getString("userId")?.toInt() ?: 0
             val symbol = it.arguments?.getString("symbol") ?: "BTC"
@@ -217,36 +248,31 @@ fun NavGraph(
                 navController = navController,
                 onHideBottomNav = onHideBottomNav
             )
-
         }
 
-        // SELL
         composable("sell/{userId}/{symbol}") {
             val userId = it.arguments?.getString("userId")?.toInt() ?: 0
             val symbol = it.arguments?.getString("symbol") ?: "BTC"
 
             SellScreen(
-                userId,
-                symbol,
-                snackbarHostState,
-                coroutineScope,
-                navController
+                userId = userId,
+                symbol = symbol,
+                snackbarHostState = snackbarHostState,
+                coroutineScope = coroutineScope,
+                navController = navController
             )
         }
 
-        // History
         composable("history/{userId}") {
             val userId = it.arguments?.getString("userId")?.toInt() ?: 0
             HistoryScreen(userId, snackbarHostState, coroutineScope)
         }
 
-        // Blockchain Log
         composable("blockchain/{userId}") {
             val userId = it.arguments?.getString("userId")?.toInt() ?: 0
             BlockchainHistoryScreen(userId, snackbarHostState, coroutineScope)
         }
 
-        // Profile
         composable("profile/{userId}") {
             val userId = it.arguments?.getString("userId")?.toInt() ?: 0
             ProfileScreen(userId, navController, snackbarHostState, coroutineScope)

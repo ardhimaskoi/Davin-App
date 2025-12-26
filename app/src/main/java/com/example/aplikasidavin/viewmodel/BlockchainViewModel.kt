@@ -12,33 +12,50 @@ import kotlinx.coroutines.launch
 class BlockchainViewModel : ViewModel() {
 
     // ===============================
-    // LIST DATA BLOCKCHAIN (PER USER)
+    // STATE: BLOCKCHAIN RECORDS (PER USER)
     // ===============================
-    private val _records = mutableStateOf<List<BlockchainRecord>>(emptyList())
+
+    private val _records =
+        mutableStateOf<List<BlockchainRecord>>(emptyList())
+
     val records: State<List<BlockchainRecord>> = _records
 
-    fun fetchUserRecords(userId: Int) {
+    // ===============================
+    // FETCH RECORDS
+    // ===============================
+
+    fun fetchUserRecords(
+        userId: Int
+    ) {
         viewModelScope.launch {
             try {
-                val response = RetrofitInstance.api.getBlockchainRecords()
+
+                val response =
+                    RetrofitInstance.api.getBlockchainRecords()
 
                 if (response.isSuccessful && response.body() != null) {
+
                     val allRecords = response.body()!!
-                    val filtered = allRecords.filter { it.user_id == userId }
-                    _records.value = filtered
+
+                    _records.value =
+                        allRecords.filter {
+                            it.user_id == userId
+                        }
+
                 } else {
                     _records.value = emptyList()
                 }
 
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _records.value = emptyList()
             }
         }
     }
 
     // ===============================
-    // RECORD KE BLOCKCHAIN
+    // RECORD ACTIVITY TO BLOCKCHAIN
     // ===============================
+
     fun recordActivity(
         userId: Int,
         action: String,
@@ -48,10 +65,20 @@ class BlockchainViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             try {
-                val body = BlockchainRequest(userId, action, stock, amount)
-                val response = RetrofitInstance.api.recordBlockchain(body)
+
+                val body =
+                    BlockchainRequest(
+                        userId,
+                        action,
+                        stock,
+                        amount
+                    )
+
+                val response =
+                    RetrofitInstance.api.recordBlockchain(body)
 
                 if (response.isSuccessful && response.body() != null) {
+
                     val res = response.body()!!
 
                     val text = """
@@ -65,34 +92,51 @@ class BlockchainViewModel : ViewModel() {
                     """.trimIndent()
 
                     onResult(text)
+
                 } else {
-                    onResult("❌ ${response.errorBody()?.string()}")
+                    onResult(
+                        "❌ ${response.errorBody()?.string()}"
+                    )
                 }
 
             } catch (e: Exception) {
-                onResult("❌ ${e.localizedMessage}")
+                onResult(
+                    "❌ ${e.localizedMessage}"
+                )
             }
         }
     }
 
     // ===============================
-    // VERIFIKASI BLOCKCHAIN
+    // VERIFY BLOCKCHAIN RECORD
     // ===============================
-    fun verifyRecord(id: Int, onResult: (String) -> Unit) {
+
+    fun verifyRecord(
+        id: Int,
+        onResult: (String) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val response = RetrofitInstance.api.verifyRecord(id)
+
+                val response =
+                    RetrofitInstance.api.verifyRecord(id)
 
                 if (response.isSuccessful && response.body() != null) {
+
                     val res = response.body()!!
                     onResult(res.message)
+
                 } else {
-                    onResult("❌ Error: ${response.errorBody()?.string()}")
+                    onResult(
+                        "❌ Error: ${response.errorBody()?.string()}"
+                    )
                 }
+
             } catch (e: Exception) {
-                onResult("❌ ${e.localizedMessage}")
+                onResult(
+                    "❌ ${e.localizedMessage}"
+                )
             }
         }
     }
-
 }

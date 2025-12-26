@@ -6,11 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,14 +38,22 @@ fun SellScreen(
     blockchainVM: BlockchainViewModel = viewModel()
 ) {
 
+    // ===============================
+    // STATE
+    // ===============================
+
     var amount by remember { mutableStateOf("") }
-    val prices by vm.prices.collectAsState()
     var shouldFocus by remember { mutableStateOf(false) }
 
-    val focusRequester = remember { FocusRequester() }
-    val keyboard = LocalSoftwareKeyboardController.current
+    val prices by vm.prices.collectAsState()
 
-    // === RATE LIMIT HANDLER ===
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    // ===============================
+    // FETCH PRICE
+    // ===============================
+
     LaunchedEffect(Unit) {
         vm.fetchPrices { msg ->
             coroutineScope.launch {
@@ -58,88 +62,128 @@ fun SellScreen(
         }
     }
 
-    // Auto focus input
+    // ===============================
+    // AUTO FOCUS INPUT
+    // ===============================
+
     LaunchedEffect(shouldFocus) {
         if (shouldFocus) {
             delay(100)
             focusRequester.requestFocus()
-            keyboard?.show()
+            keyboardController?.show()
             shouldFocus = false
         }
     }
 
+    // ===============================
+    // CALCULATION
+    // ===============================
+
     val short = getShortSymbol(symbol)
     val priceUsd = prices[symbol.lowercase()]?.get("usd") ?: 0.0
+
     val coinAmount = amount.toDoubleOrNull() ?: 0.0
     val totalUsd = coinAmount * priceUsd
 
     val totalDisplay = "%,.2f".format(totalUsd)
     val amountDisplay = if (amount.isEmpty()) "0" else amount.trimEnd('.')
 
+    // ===============================
+    // UI
+    // ===============================
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            .padding(
+                horizontal = 24.dp,
+                vertical = 32.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
 
+        // ===============================
         // HEADER
-        Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
+        // ===============================
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.Start
+        ) {
             Text(
-                "Jual ${short.uppercase()}",
+                text = "Jual ${short.uppercase()}",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFFB00020)
             )
-            Spacer(Modifier.height(4.dp))
+
+            Spacer(modifier = Modifier.height(4.dp))
+
             Text(
-                "Harga 1 ${short.uppercase()}: $ ${"%,.2f".format(priceUsd)}",
+                text = "Harga 1 ${short.uppercase()}: $ ${"%,.2f".format(priceUsd)}",
                 color = Color.Gray,
                 fontSize = 13.sp
             )
         }
 
+        // ===============================
         // DISPLAY BESAR
+        // ===============================
+
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 40.dp)
-                .noRippleClickable { shouldFocus = true }
+                .noRippleClickable {
+                    shouldFocus = true
+                },
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "$amountDisplay ${short.uppercase()}",
+                text = "$amountDisplay ${short.uppercase()}",
                 fontSize = 42.sp,
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                "≈ $ $totalDisplay",
+                text = "≈ $ $totalDisplay",
                 color = Color.Gray,
                 fontSize = 14.sp
             )
         }
 
-        // INPUT
+        // ===============================
+        // HIDDEN INPUT
+        // ===============================
+
         BasicTextField(
             value = amount,
             onValueChange = { new ->
-                if (new.matches(Regex("^\\d*\\.?\\d*\$"))) {
+                if (new.matches(Regex("^\\d*\\.?\\d*$"))) {
                     amount = new
                 }
             },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal
+            ),
             modifier = Modifier
                 .focusRequester(focusRequester)
                 .width(1.dp)
                 .height(1.dp)
         )
 
-        // TOMBOL
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        // ===============================
+        // SELL BUTTON
+        // ===============================
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
             Button(
                 onClick = {
 
@@ -147,17 +191,25 @@ fun SellScreen(
 
                     if (sellAmount == null || sellAmount <= 0) {
                         coroutineScope.launch {
-                            snackbarHostState.showSnackbar("❌ Jumlah coin tidak valid")
+                            snackbarHostState.showSnackbar(
+                                "❌ Jumlah coin tidak valid"
+                            )
                         }
                         return@Button
                     }
 
                     if (priceUsd <= 0) {
                         coroutineScope.launch {
-                            snackbarHostState.showSnackbar("⚠️ Harga tidak tersedia")
+                            snackbarHostState.showSnackbar(
+                                "⚠️ Harga tidak tersedia"
+                            )
                         }
                         return@Button
                     }
+
+                    // ===============================
+                    // 1️⃣ SELL PROCESS
+                    // ===============================
 
                     vm.sellCrypto(
                         userId = userId,
@@ -166,15 +218,30 @@ fun SellScreen(
                         price = priceUsd
                     ) { msg ->
 
-                        coroutineScope.launch { snackbarHostState.showSnackbar(msg) }
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(msg)
+                        }
 
                         if (msg.contains("❌")) return@sellCrypto
 
+                        // ===============================
+                        // 2️⃣ BLOCKCHAIN RECORD
+                        // ===============================
+
                         blockchainVM.recordActivity(
-                            userId, "SELL", symbol.uppercase(), sellAmount
+                            userId = userId,
+                            action = "SELL",
+                            stock = symbol.uppercase(),
+                            amount = sellAmount
                         ) { bcMsg ->
-                            coroutineScope.launch { snackbarHostState.showSnackbar(bcMsg) }
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(bcMsg)
+                            }
                         }
+
+                        // ===============================
+                        // 3️⃣ NAVIGATE BACK
+                        // ===============================
 
                         coroutineScope.launch {
                             delay(600)
@@ -189,9 +256,12 @@ fun SellScreen(
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Jual Sekarang", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "Jual Sekarang",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
 }
-

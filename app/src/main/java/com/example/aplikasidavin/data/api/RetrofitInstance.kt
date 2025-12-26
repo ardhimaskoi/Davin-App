@@ -6,12 +6,31 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitInstance {
-    private const val BASE_URL = "https://superexplicit-charmain-prohibitively.ngrok-free.dev/"
 
-    private val client = OkHttpClient.Builder()
-        .addInterceptor(HttpLoggingInterceptor().apply {
+    // ===============================
+    // CONFIG
+    // ===============================
+
+    private const val BASE_URL =
+        "https://superexplicit-charmain-prohibitively.ngrok-free.dev/"
+
+    // ===============================
+    // OKHTTP CLIENT
+    // ===============================
+
+    private val loggingInterceptor =
+        HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
-        }).build()
+        }
+
+    private val client: OkHttpClient =
+        OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .build()
+
+    // ===============================
+    // RETROFIT
+    // ===============================
 
     val api: ApiService by lazy {
         Retrofit.Builder()
@@ -22,4 +41,3 @@ object RetrofitInstance {
             .create(ApiService::class.java)
     }
 }
-

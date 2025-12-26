@@ -1,30 +1,34 @@
 package com.example.aplikasidavin.screens.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.rememberAsyncImagePainter
 import com.example.aplikasidavin.data.local.UserPreferences
 import com.example.aplikasidavin.viewmodel.AuthViewModel
 import com.example.aplikasidavin.viewmodel.AuthViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+// ===============================
+// COLOR
+// ===============================
+
+private val DavinBlue = Color(0xFF1B2C67)
+private val BorderGray = Color(0xFFE0E0E0)
 
 @Composable
 fun RegisterScreen(
@@ -32,175 +36,207 @@ fun RegisterScreen(
     snackbarHostState: SnackbarHostState,
     coroutineScope: CoroutineScope
 ) {
+
+    // ===============================
+    // INIT
+    // ===============================
+
     val context = LocalContext.current
     val prefs = remember { UserPreferences(context) }
-    val authVM: AuthViewModel = viewModel(factory = AuthViewModelFactory(prefs))
+
+    val authVM: AuthViewModel =
+        viewModel(factory = AuthViewModelFactory(prefs))
+
     val message by authVM.message.collectAsState()
 
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    // ✅ Tampilkan snackbar ketika ada pesan baru dari ViewModel
+    // ===============================
+    // SNACKBAR HANDLER
+    // ===============================
+
     if (message.isNotEmpty()) {
         LaunchedEffect(message) {
             snackbarHostState.currentSnackbarData?.dismiss()
-                coroutineScope.launch {
-                snackbarHostState.showSnackbar(message)
-            }
+            snackbarHostState.showSnackbar(message)
         }
     }
 
-    Box(
+    // ===============================
+    // UI
+    // ===============================
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF5E35B1), Color(0xFF9575CD))
-                )
-            )
+            .background(Color.White)
+            .padding(horizontal = 28.dp),
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 32.dp, vertical = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // === Header & Icon ===
-            Image(
-                painter = rememberAsyncImagePainter("https://cdn-icons-png.flaticon.com/512/295/295128.png"),
-                contentDescription = "Register Icon",
-                modifier = Modifier.size(100.dp)
+
+        // ===============================
+        // HEADER TEXT
+        // ===============================
+
+        Text(
+            text = "Buat Akun",
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = "Mulai perjalanan investasi Anda",
+            fontSize = 14.sp,
+            color = Color.Gray
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // ===============================
+        // USERNAME FIELD
+        // ===============================
+
+        OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            label = { Text("Username") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = DavinBlue,
+                unfocusedBorderColor = BorderGray,
+                focusedLabelColor = DavinBlue,
+                cursorColor = DavinBlue,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
             )
+        )
 
-            Spacer(Modifier.height(20.dp))
-            Text(
-                "Buat Akun Baru",
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // ===============================
+        // EMAIL FIELD
+        // ===============================
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Email
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = DavinBlue,
+                unfocusedBorderColor = BorderGray,
+                focusedLabelColor = DavinBlue,
+                cursorColor = DavinBlue,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
             )
-            Text(
-                "Mulai perjalanan investasimu hari ini 🚀",
-                color = Color.White.copy(alpha = 0.8f),
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // ===============================
+        // PASSWORD FIELD
+        // ===============================
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Password
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = DavinBlue,
+                unfocusedBorderColor = BorderGray,
+                focusedLabelColor = DavinBlue,
+                cursorColor = DavinBlue,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
             )
+        )
 
-            Spacer(Modifier.height(36.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-            // === Input Fields ===
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                    focusedLabelColor = Color.White,
-                    unfocusedLabelColor = Color.White.copy(alpha = 0.8f),
-                    cursorColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
-                )
-            )
+        // ===============================
+        // REGISTER BUTTON
+        // ===============================
 
-            Spacer(Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                singleLine = true,
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Email
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                    focusedLabelColor = Color.White,
-                    unfocusedLabelColor = Color.White.copy(alpha = 0.8f),
-                    cursorColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
-                )
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Password
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                    focusedLabelColor = Color.White,
-                    unfocusedLabelColor = Color.White.copy(alpha = 0.8f),
-                    cursorColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
-                )
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            // === Tombol Daftar ===
-            Button(
-                onClick = {
-                    if (username.isBlank() || email.isBlank() || password.isBlank()) {
+        Button(
+            onClick = {
+                if (
+                    username.isBlank() ||
+                    email.isBlank() ||
+                    password.isBlank()
+                ) {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            "❌ Semua field wajib diisi!"
+                        )
+                    }
+                } else {
+                    authVM.register(username, email, password) { userId ->
                         coroutineScope.launch {
-                            snackbarHostState.showSnackbar("❌ Semua field wajib diisi!")
+                            prefs.saveUserId(userId)
+                            snackbarHostState.showSnackbar(
+                                "✅ Registrasi berhasil"
+                            )
                         }
-                    } else {
-                        authVM.register(username, email, password) { userId ->
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("✅ Registrasi berhasil!")
-                                prefs.saveUserId(userId)
-                            }
-                            navController.navigate("home/$userId") {
-                                popUpTo("register") { inclusive = true }
-                            }
+
+                        navController.navigate("home/$userId") {
+                            popUpTo("register") { inclusive = true }
                         }
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White)
-            ) {
-                Text(
-                    "Daftar Sekarang",
-                    color = Color(0xFF4A148C),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-            }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = DavinBlue
+            )
+        ) {
+            Text(
+                text = "Daftar",
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
 
-            Spacer(Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
-            TextButton(onClick = { navController.navigate("login") }) {
-                Text(
-                    "Sudah punya akun? Login di sini",
-                    color = Color.White,
-                    fontSize = 14.sp
-                )
-            }
+        // ===============================
+        // LOGIN LINK
+        // ===============================
+
+        TextButton(
+            onClick = {
+                navController.navigate("login")
+            },
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) {
+            Text(
+                text = "Sudah punya akun? Masuk",
+                color = DavinBlue,
+                fontSize = 14.sp
+            )
         }
     }
 }
