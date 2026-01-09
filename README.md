@@ -1,6 +1,6 @@
 # DAVIN – Decentralized Investment App
 
-DAVIN adalah aplikasi mobile investment platform berbasis Android yang menggabungkan micro-investment, verifikasi blockchain, dan harga crypto real-time dalam satu aplikasi dengan tampilan **clean dan profesional seperti exchange modern.
+DAVIN adalah aplikasi mobile investment platform berbasis Android yang menggabungkan micro-investment, verifikasi blockchain, dan harga crypto real-time dalam satu aplikasi dengan tampilan clean dan profesional seperti exchange modern.
 
 Aplikasi ini dikembangkan sebagai project eksplorasi teknologi finansial modern yang mencakup Android UI modern, backend API, payment gateway, serta blockchain verification.
 
