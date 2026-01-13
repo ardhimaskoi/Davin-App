@@ -53,8 +53,7 @@ MIDTRANS_CLIENT_KEY=SB-Mid-client-xxxx
 
 Jalankan backend:
 node index.js
-atau (opsional):
-npx nodemon index.js
+
 
 Backend akan berjalan di:
 [http://localhost:3000](http://localhost:3000)
@@ -63,11 +62,7 @@ Backend akan berjalan di:
 
 ### Menjalankan Blockchain (Ganache)
 
-Jalankan Ganache menggunakan Ganache GUI atau Ganache CLI.
-Default RPC:
-[http://127.0.0.1:8545](http://127.0.0.1:8545)
-
-Pastikan smart contract sudah di-deploy dan address serta ABI sudah sesuai dengan konfigurasi backend.
+ganache -p 8545 --db ganache-db --wallet.deterministic
 
 ---
 
